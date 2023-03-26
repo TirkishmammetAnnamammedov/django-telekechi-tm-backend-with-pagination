@@ -4,14 +4,14 @@ from .models import UserClient, ForgotPassword, TurkmenTelekechi, Category, Prod
 class UserClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserClient
-        fields = ('id', 'phone_number', 'password', 'joined_date')
+        fields = ('id', 'phone_number', 'password', 'joined_date', 'password_encrypted')
 
         # extra_kwargs = {'password': {
         #     'write_only': True,
         #     'required': True
         # }}
 
-class ForgetPasswordSerializer(serializers.ModelSerializer):
+class ForgotPasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = ForgotPassword
         fields = '__all__'

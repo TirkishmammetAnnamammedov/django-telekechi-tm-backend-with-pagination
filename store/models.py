@@ -2,11 +2,15 @@ from django.db import models
 
 class UserClient(models.Model):
     phone_number = models.CharField(max_length=15, unique=True, null=False, blank=False)
-    password = models.CharField(max_length=50, null=False, blank=False)
+    password = models.CharField(max_length=100, null=False, blank=False)
     joined_date = models.DateTimeField(auto_now_add=True)
+    password_encrypted = models.BooleanField(default=False)
 
     def __str__(self):
         return self.phone_number
+
+    class Meta:
+        verbose_name_plural = '2. Clients'
 
 class ForgotPassword(models.Model):
     phone_number = models.CharField(max_length=15)
@@ -14,6 +18,9 @@ class ForgotPassword(models.Model):
 
     def __str__(self):
         return self.phone_number
+    
+    class Meta:
+        verbose_name_plural = '3. Forgot passwords'
 
 class TurkmenTelekechi(models.Model):
     addresses = models.CharField(max_length=200, null =True)
@@ -25,6 +32,9 @@ class TurkmenTelekechi(models.Model):
 
     def __str__(self):
         return self.telekechi_phone_numbers
+    
+    class Meta:
+        verbose_name_plural = '1. Main site informations'
 
 class Category(models.Model):
     category_name = models.CharField(max_length=30, unique=True)
@@ -35,11 +45,14 @@ class Category(models.Model):
     def __str__(self):
         return self.category_name
 
+    class Meta:
+        verbose_name_plural = '4. Categories'
+
 class Product(models.Model):
     product_adder = models.ForeignKey(UserClient, on_delete=models.CASCADE, related_name='added_products', to_field='phone_number')
     product_name = models.CharField(max_length=70)
     product_price = models.CharField(max_length=20)
-    product_image = models.ImageField(upload_to='product', blank = True, null = True)
+    product_image = models.ImageField(upload_to='product', blank = True, null=True)
     product_image2 = models.ImageField(upload_to='product', blank = True, null=True)
     product_image3 = models.ImageField(upload_to='product', blank = True, null=True)
     product_image4 = models.ImageField(upload_to='product', blank = True, null=True)
@@ -61,3 +74,5 @@ class Product(models.Model):
     def __str__(self):
         return self.product_name
         
+    class Meta:
+        verbose_name_plural = '5. Products'

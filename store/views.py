@@ -2,14 +2,14 @@ from django.shortcuts import Http404
 from rest_framework.parsers import JSONParser
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from .hashing import AESCipher
 import datetime as dt
 from .serializers import *
-from .filters import *
-from .models import *
+from .filters import *    
+from .models import *  
 
 @api_view(['GET', 'POST'])
 def sign_up(request):
@@ -30,7 +30,7 @@ def log_in(request, user, password):
         client = UserClient.objects.get(phone_number=user)
         if client.password == password:
             if request.method == 'GET':
-                data = Product.objects.filter(is_active=True, product_adder=client)
+                data = Product.objects.filter(is_active=True, product_adder=client).order_by('-id')
                 serializer = ProductSerializer(data,context={'request': request}, many=True)
                 return Response(serializer.data)
             elif request.method == 'POST':
@@ -39,6 +39,21 @@ def log_in(request, user, password):
                     serializer.save()
                     return Response(status=status.HTTP_201_CREATED)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(status=status.HTTP_417_EXPECTATION_FAILED)
+    except UserClient.DoesNotExist:
+        return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+@api_view(['GET', 'POST'])
+def is_login(request, user, password):
+    try:
+        client = UserClient.objects.get(phone_number=user)
+        if AESCipher('encrypt').decrypt(client.password) == password:
+            if request.method == 'GET':
+                data = UserClient.objects.get(phone_number=user)
+                data.password = AESCipher('encrypt').decrypt(data.password)
+                serializer = UserClientSerializer(data)
+                return Response(serializer.data)
         else:
             return Response(status=status.HTTP_417_EXPECTATION_FAILED)
     except UserClient.DoesNotExist:
@@ -74,11 +89,11 @@ def login_detail(request, user, password, nm):
 @api_view(['GET', 'POST'])
 def forgot_passwords(request):
     if request.method == 'GET':
-        data = ForgotPassword.objects.all()
-        serializer = ForgetPasswordSerializer(data, context={'request': request}, many=True)
+        data = ForgotPassword.objects.all().order_by('-id')
+        serializer = ForgotPasswordSerializer(data, context={'request': request}, many=True)
         return Response(serializer.data)
     elif request.method == 'POST':
-        serializer = ForgetPasswordSerializer(data=request.data)
+        serializer = ForgotPasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(status=status.HTTP_201_CREATED)
@@ -97,19 +112,23 @@ def category_list(request):
         for is_twenty_days_ago in Product.objects.all():
             if (dt.date.today() - is_twenty_days_ago.joined_date).days > 20:
                 is_twenty_days_ago.delete()
+        for password in UserClient.objects.all():
+            if password.password_encrypted:
+                pass
+            else:
+                password.password=AESCipher('encrypt').encrypt(password.password)
+                password.password_encrypted = True
+                password.save()
         data = Category.objects.all()
         serializer = CategorySerializer(data, context={'request': request}, many=True)
         return Response(serializer.data)
-
+        
 @api_view(['GET', 'POST'])
 def product_list(request):
     if request.method == 'GET':
-        paginator = PageNumberPagination()
-        paginator.page_size = 3
-        data = Product.objects.filter(is_active=True)
-        result_page = paginator.paginate_queryset(data, request)
-        serializer = ProductSerializer(result_page, context={'request': request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        data = Product.objects.filter(is_active=True).order_by('-id')
+        serializer = ProductSerializer(data, context={'request': request}, many=True)
+        return Response(serializer.data)
     elif request.method == 'POST':
         serializer = ProductSerializer(data=request.data)
         if serializer.is_valid():
@@ -145,7 +164,7 @@ def new_product_api(request):
         for is_new_product in Product.objects.filter(is_active=True):
             if (dt.date.today() - is_new_product.joined_date).days <= 3:
                 newProducts.append(is_new_product)
-        serializer = ProductSerializer(newProducts, context={'request': request}, many=True)
+        serializer = ProductSerializer(newProducts[::-1], context={'request': request}, many=True)
         return Response(serializer.data)
 
 
@@ -166,4 +185,3 @@ def filter_products(request):
         queryset = filterset.qs
     serializer = ProductSerializer(queryset, many=True)
     return Response(serializer.data)
-    

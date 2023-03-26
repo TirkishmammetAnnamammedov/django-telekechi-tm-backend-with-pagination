@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group
 from .models import UserClient, ForgotPassword, TurkmenTelekechi, Category, Product
 
 class UserClientAdmin(admin.ModelAdmin):
-    list_display = ('phone_number', 'joined_date')
+    list_display = ('phone_number', 'joined_date', 'password')
 
 class ForgotPasswordAdmin(admin.ModelAdmin):
     list_display = ('phone_number', 'posted_date')
